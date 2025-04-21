@@ -2,19 +2,35 @@ import streamlit as st
 import requests
 import random
 
-st.set_page_config(page_title="Workout Generator", page_icon="💪")
+st.set_page_config(page_title="Fitness Companion", page_icon="💪", layout="wide")
 
-def generate_workout_plan(age, gender, height, weight, workout_duration, workout_days):
-    # TODO: Implement actual scoring logic
+# Manual Calories Calculator from Code 1
+def calories_calculator(weight, height, age, gender, heart_rate, minutes, workout_type):
+    # BMI-based calorie calculation
+    workout_factors = {
+        "None": 0,
+        "Yoga": 1,
+        "Dancing": 2,
+        "Cardio": 3,
+        "HIIT": 4
+    }
+    workout_factor = workout_factors.get(workout_type, 0)
+    calories_per_min = (heart_rate * weight * 0.0007) + (age * 0.01) + workout_factor
+    calories_total = calories_per_min * minutes
+    bmi = weight / ((height / 100) ** 2)
+    return round(calories_total, 2), calories_per_min, bmi
+
+# Generate workout plan using calorie calculator
+def generate_workout_plan(age, gender, height, weight, workout_duration, workout_days, heart_rate, workout_type):
+    calories_burned, _, _ = calories_calculator(weight, height, age, gender, heart_rate, workout_duration, workout_type)
+
     strength_score = random.uniform(0.3, 0.7)
     endurance_score = random.uniform(0.3, 0.7)
     flexibility_score = random.uniform(0.3, 0.7)
 
-    # Simulated workout type selection
     workout_types = ["Cycling", "Running", "Swimming", "Weight Training"]
     recommended_workout = random.choice(workout_types)
 
-    # Fetch exercises from ExerciseDB API
     def get_exercise_details(muscle_group):
         try:
             response = requests.get(
@@ -26,7 +42,6 @@ def generate_workout_plan(age, gender, height, weight, workout_duration, workout
             st.error(f"Error fetching exercises: {e}")
             return None
 
-    # Generate workout plan
     workout_plan = []
     muscle_groups = ["hamstrings", "quadriceps", "chest", "back", "shoulders"]
     for day in range(1, workout_days + 1):
@@ -46,43 +61,63 @@ def generate_workout_plan(age, gender, height, weight, workout_duration, workout
         "endurance_score": endurance_score,
         "flexibility_score": flexibility_score,
         "recommended_workout": recommended_workout,
-        "workout_plan": workout_plan
+        "workout_plan": workout_plan,
+        "calories_burned": calories_burned
     }
 
-st.title("Personalized Workout Generator")
+# Header
+st.markdown(
+    f'<img src="https://images-platform.99static.com/8QVhsq0xUI9KAGH6WZXUmnWohwI=/0x0:1574x1574/500x500/top/smart/99designs-contests-attachments/97/97489/attachment_97489210" width="150" style="display: block; margin: 0 auto;">',
+    unsafe_allow_html=True
+)
 
-# Sidebar inputs
+st.title("Fitness Companion")
+
+# Tool selection
+app_selection = st.radio("Choose a Fitness Tool", 
+    ["Calories Calculator", "Recommended Workout", "Workout Plan"]
+)
+
+# Sidebar user inputs
 with st.sidebar:
     st.header("Personal Details")
     age = st.number_input("Age", min_value=5, max_value=120, value=30)
-    gender = st.selectbox("Gender", ["Male", "Female", "Other"])
+    gender = st.selectbox("Gender", ["Male", "Female", "Prefer not to say"])
     height = st.number_input("Height (cm)", min_value=50, max_value=300, value=170)
     weight = st.number_input("Weight (kg)", min_value=20, max_value=300, value=70)
+    heart_rate = st.number_input("Heart Rate", min_value=60, max_value=200, value=120)
     workout_duration = st.number_input("Workout Duration (mins)", min_value=10, max_value=180, value=45)
     workout_days = st.number_input("Workout Days", min_value=1, max_value=7, value=3)
+    workout_type = st.selectbox("Workout Type", ["None", "Yoga", "Dancing", "Cardio", "HIIT"])
 
-    generate_button = st.button("Generate Workout")
+# Calories calculator section
+if app_selection == "Calories Calculator":
+    st.header("Calories Burned Calculator")
+    if st.button("Calculate Calories"):
+        calories, per_min, bmi = calories_calculator(weight, height, age, gender, heart_rate, workout_duration, workout_type)
+        st.metric("Calories Burned", f"{calories:.0f} cal")
+        st.metric("Calories per Minute", f"{per_min:.2f} kcal/min")
+        st.metric("BMI", f"{bmi:.1f}")
 
-# Main area for results
-if generate_button:
-    with st.spinner("Generating your personalized workout..."):
-        result = generate_workout_plan(age, gender, height, weight, workout_duration, workout_days)
-
-        # Display weighted averages
-        st.markdown("### Fitness Scores")
+# Recommended workout section
+if app_selection == "Recommended Workout":
+    st.header("Recommended Workout")
+    if st.button("Get Recommended Workout"):
+        result = generate_workout_plan(age, gender, height, weight, workout_duration, workout_days, heart_rate, workout_type)
         col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Strength", f"{result['strength_score']:.2f}")
-        with col2:
-            st.metric("Endurance", f"{result['endurance_score']:.2f}")
-        with col3:
-            st.metric("Flexibility", f"{result['flexibility_score']:.2f}")
-
-        # Recommended Workout Type
+        col1.metric("Strength", f"{result['strength_score']:.2f}")
+        col2.metric("Endurance", f"{result['endurance_score']:.2f}")
+        col3.metric("Flexibility", f"{result['flexibility_score']:.2f}")
         st.markdown(f"✅ **Recommended Workout Type:** {result['recommended_workout']}")
 
-        # Workout Plan
-        st.markdown("### 🔥 Workout Plan")
+# Workout plan section
+if app_selection == "Workout Plan":
+    st.header("Personalized Workout Plan")
+    if st.button("Generate Workout Plan"):
+        result = generate_workout_plan(age, gender, height, weight, workout_duration, workout_days, heart_rate, workout_type)
+        st.metric("Calories Burned", f"{result['calories_burned']:.0f} cal")
+        st.markdown(f"✅ **Recommended Workout Type:** {result['recommended_workout']}")
+        st.markdown("### 💪 Workout Plan")
         for workout in result['workout_plan']:
             st.markdown(f"**Day {workout['day']}:** {workout['name']} {workout['muscle_group']}")
             st.markdown(f"• Body Part: {workout['body_part']}")
