@@ -125,5 +125,7 @@ if app_selection == "Workout Plan":
             if workout['image_url']:
                 st.image(workout['image_url'], width=200)
 
+
+
 if __name__ == "__main__":
     pass
