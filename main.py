@@ -20,7 +20,7 @@ def calories_calculator(weight, height, age, gender, heart_rate, minutes, workou
     bmi = weight / ((height / 100) ** 2)
     return round(calories_total, 2), calories_per_min, bmi
 
-# Generate workout plan using calorie calculator
+# Generate workout plan using the calorie calculator
 def generate_workout_plan(age, gender, height, weight, workout_duration, workout_days, heart_rate, workout_type):
     calories_burned, _, _ = calories_calculator(weight, height, age, gender, heart_rate, workout_duration, workout_type)
 
